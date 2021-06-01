@@ -1,33 +1,40 @@
+import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:untitled3/function/authentication.dart';
-import 'package:untitled3/function/temp.dart';
 import 'package:untitled3/model/chatMessageModel.dart';
-import 'package:untitled3/model/chatRoom.dart';
 import 'package:untitled3/model/chatUserModel.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 
 class ChatDetailPage extends StatefulWidget {
   ChatUsers chatUsers;
   String roomID;
-  ChatDetailPage({this.chatUsers,this.roomID});
+
+  ChatDetailPage({this.chatUsers, this.roomID});
 
   @override
   _ChatDetailPageState createState() => _ChatDetailPageState();
 }
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
+  File _image;
+  Uuid uuid = new Uuid();
+  ScrollController _scrollController ;
+
+  Future getImage() async {
+    final image = await ImagePicker.pickImage(
+        source: ImageSource.gallery, maxWidth: 150, maxHeight: 150);
+    setState(() {
+      _image = image;
+    });
+  }
+
   final _auth = FirebaseAuth.instance;
   String messageText;
-
-
   TextEditingController _controller = TextEditingController();
-
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -83,57 +90,71 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       ),
       body: Stack(
         children: <Widget>[
-          StreamBuilder(
-            stream: FirebaseFirestore.instance.collection('message').doc(widget.roomID).collection(widget.roomID).orderBy('timestamp', descending: false).snapshots(),
-            builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
-              if (streamSnapshot.hasError)
-                return Text('Error: ${streamSnapshot.error}');
-              /*if(!streamSnapshot.hasData)
-                return Center(child: Text('Start your conversation'));*/
-              switch (streamSnapshot.connectionState) {
-                case ConnectionState.none:
-                  return Text('Select lot');
-                case ConnectionState.waiting:
-                  return Center(child: Text('Awaiting bids...'),);
-                case ConnectionState.active:
-                  {
-                    final listchat = streamSnapshot.data.docs.map((e) => Messages.fromJson(e.data())).toList();
-                    return ListView.builder(
-                        itemCount: listchat.length,
-                        shrinkWrap: true,
-                        padding: EdgeInsets.only(top: 16),
-                        itemBuilder: (context, index) {
-                          return Container(
-                            padding: EdgeInsets.only(
-                                left: 14, right: 14, top: 10, bottom: 10),
-                            child: Align(
-                              alignment: (listchat[index].sender != _auth.currentUser.uid
-                                  ? Alignment.topLeft
-                                  : Alignment.topRight
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  color:
-                                      (listchat[index].receiver == _auth.currentUser.uid
-                                          ? Colors.grey.shade200
-                                          : Colors.blue[200]),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 50),
+            child: StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection('message')
+                  .doc(widget.roomID)
+                  .collection(widget.roomID)
+                  .snapshots(),
+              builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
+                if (streamSnapshot.hasError)
+                  return Text('Error: ${streamSnapshot.error}');
+
+                switch (streamSnapshot.connectionState) {
+                  case ConnectionState.none:
+                    return Text('Select lot');
+                  case ConnectionState.waiting:
+                    return Center(
+                      child: Text('Awaiting bids...'),
+                    );
+                  case ConnectionState.active:
+                    {
+                      if(!streamSnapshot.hasData)
+                        return Center(child: Text('Start your conversation'));
+                      final listchat = streamSnapshot.data.docs
+                          .map((e) => Messages.fromJson(e.data()))
+                          .toList();
+                      listchat.sort((a,b)=>(b.timestamp.compareTo(a.timestamp)));
+                      return ListView.builder(
+                        reverse: true,
+                          itemCount: listchat.length,
+                          shrinkWrap: true,
+                          padding: EdgeInsets.only(top: 16),
+                          itemBuilder: (context, index) {
+                            return Container(
+                              padding: EdgeInsets.only(
+                                  left: 14, right: 14, top: 10, bottom: 10),
+                              child: Align(
+                                alignment: (listchat[index].sender !=
+                                        _auth.currentUser.uid
+                                    ? Alignment.topLeft
+                                    : Alignment.topRight),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: (listchat[index].receiver ==
+                                            _auth.currentUser.uid
+                                        ? Colors.grey.shade200
+                                        : Colors.blue[200]),
+                                  ),
+                                  padding: EdgeInsets.all(16),
+                                  child: Text(
+                                    listchat[index].contain,
+                                    style: TextStyle(fontSize: 15),
+                                  ),
                                 ),
-                                padding: EdgeInsets.all(16),
-                                child: Text(
-                                  listchat[index].contain,
-                                  style: TextStyle(fontSize: 15),
-                                ),
                               ),
-                            ),
-                          );
-                        });
-                  }
-                case ConnectionState.done:
-                  return Text('done');
-              }
-              return null;
-            },
+                            );
+                          });
+                    }
+                  case ConnectionState.done:
+                    return Text('done');
+                }
+                return null;
+              },
+            ),
           ),
           Align(
             alignment: Alignment.bottomLeft,
@@ -145,7 +166,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               child: Row(
                 children: <Widget>[
                   GestureDetector(
-                    onTap: () {},
+                    onTap: () async {
+                      Fluttertoast.showToast(
+                          msg: "Function not fully developed");
+                      /*getImage();
+                      String Url = await postFile(imageFile: _image, folderPath: 'chat_photos', fileName: uuid.v4());*/
+                    },
                     child: Container(
                       height: 30,
                       width: 30,
@@ -166,9 +192,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
-                      onChanged: (value) {
-                        messageText = value;
-                      },
+
                       decoration: InputDecoration(
                           hintText: "Write message...",
                           hintStyle: TextStyle(color: Colors.black54),
@@ -180,8 +204,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   ),
                   FloatingActionButton(
                     onPressed: () {
-                      sendtext();
+                      sendtext(_controller.text);
                       _controller.clear();
+                      _controller.clearComposing();
+
+
                     },
                     child: Icon(
                       Icons.send,
@@ -200,27 +227,43 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
   }
 
-
-
-  void sendtext()
-  {
-    if (messageText.trim() != '') {
+  void sendtext(String input) {
+    if (input != '') {
       /*var documentReference = */ FirebaseFirestore.instance
           .collection('message')
           .doc(widget.roomID)
           .collection(widget.roomID)
           .doc(DateTime.now().millisecondsSinceEpoch.toString())
           .set(Messages(
-          sender: _auth.currentUser.uid,
-          receiver: widget.chatUsers.id,
-          timestamp: DateTime.now().millisecondsSinceEpoch,
-          contain: messageText)
-          .toJson());
+                  sender: _auth.currentUser.uid,
+                  receiver: widget.chatUsers.id,
+                  timestamp: DateTime.now().millisecondsSinceEpoch,
+                  contain: input)
+              .toJson());
     } else
       Fluttertoast.showToast(
           msg: 'Nothing to send',
           backgroundColor: Colors.black,
           textColor: Colors.red);
-
   }
+
+  File _imageFile;
+
+  static Future<String> postFile(
+      {@required File imageFile,
+      @required String folderPath,
+      @required String fileName}) async {
+    Reference reference =
+        FirebaseStorage.instance.ref().child(folderPath).child(fileName);
+
+    TaskSnapshot storageTaskSnapshot = await reference.putFile(imageFile);
+
+    String dowUrl = await storageTaskSnapshot.ref.getDownloadURL();
+
+    return dowUrl;
+  }
+
+
+
 }
+
