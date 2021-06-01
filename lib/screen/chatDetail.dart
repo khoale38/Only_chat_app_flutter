@@ -91,7 +91,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       body: Stack(
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.only(bottom: 50),
+            padding: const EdgeInsets.only(bottom: 60),
             child: StreamBuilder(
               stream: FirebaseFirestore.instance
                   .collection('message')
@@ -136,7 +136,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                     borderRadius: BorderRadius.circular(20),
                                     color: (listchat[index].receiver ==
                                             _auth.currentUser.uid
-                                        ? Colors.grey.shade200
+                                        ? Colors.grey
                                         : Colors.blue[200]),
                                   ),
                                   padding: EdgeInsets.all(16),
