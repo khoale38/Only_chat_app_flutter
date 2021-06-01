@@ -136,7 +136,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                     borderRadius: BorderRadius.circular(20),
                                     color: (listchat[index].receiver ==
                                             _auth.currentUser.uid
-                                        ? Colors.grey
+                                        ? Colors.grey.shade300
                                         : Colors.blue[200]),
                                   ),
                                   padding: EdgeInsets.all(16),
